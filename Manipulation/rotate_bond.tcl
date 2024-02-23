@@ -39,8 +39,9 @@ proc make_bond_rotatable { a1 a2 {molid top} } {
   # First, split the selection into fragments separated by selected bond
   # We will rotate the smaller fragment
 
-  set sel [atomselect $molid "same fragment as index $a1 $a2"]
-  set bonds [$sel getbonds]
+  set all [atomselect $molid all]
+  set bonds [$all getbonds]
+  $all delete
 
   set part1 [list $a1]; set cur_part1 $part1
   set part2 [list $a2]; set cur_part2 $part2
@@ -51,6 +52,9 @@ proc make_bond_rotatable { a1 a2 {molid top} } {
   # Recursively discover half until either one converges
   set i 0
   while { $i < $max_iter && [llength $cur_part1] > 0 && [llength $cur_part2] > 0 } {
+    # For debugging
+    # [atomselect top "index $cur_part1"] set beta $i
+    # [atomselect top "index $cur_part2"] set beta [expr -$i]
     lassign [extend_half $part1 $cur_part1 $a2 $bonds] part1 cur_part1
     lassign [extend_half $part2 $cur_part2 $a1 $bonds] part2 cur_part2
     incr i
@@ -115,7 +119,7 @@ proc rotate_group { sela1 sela2 sel angle } {
 proc extend_half { part1 cur_part1 a2 bonds } {
   set new_part1 [list]
   foreach c $cur_part1 {
-    # Iterate over bonded neighbors of recent batch of added atoms
+    # Iterate over bonded neighbors of latest set of added atoms
     foreach a [lindex $bonds $c] {
       if { $a != $a2 && [lsearch -sorted -integer $part1 $a] == -1 } {
         lappend new_part1 $a
