@@ -39,7 +39,14 @@ proc make_bond_rotatable { a1 a2 {molid top} } {
   # First, split the selection into fragments separated by selected bond
   # We will rotate the smaller fragment
 
-  set all [atomselect $molid all]
+  # Select all atoms in fragment, plus all atoms with lower index
+  set frag [atomselect $molid "same fragment as index $a1 $a2"]
+  set max 0
+  foreach i [$frag list] {
+    if { $i > $max } { set max $i }
+  }
+  set all [atomselect $molid "index <= $max"]
+  # ... so that this list of bonds starts from index zero
   set bonds [$all getbonds]
   $all delete
 
@@ -52,21 +59,14 @@ proc make_bond_rotatable { a1 a2 {molid top} } {
   # Recursively discover half until either one converges
   set i 0
   while { $i < $max_iter && [llength $cur_part1] > 0 && [llength $cur_part2] > 0 } {
-    # For debugging
-    # [atomselect top "index $cur_part1"] set beta $i
-    # [atomselect top "index $cur_part2"] set beta [expr -$i]
     lassign [extend_half $part1 $cur_part1 $a2 $bonds] part1 cur_part1
     lassign [extend_half $part2 $cur_part2 $a1 $bonds] part2 cur_part2
+    # puts "$i  #  $cur_part1   #  $cur_part2  #" ;# debugging
     incr i
   }
 
   set spart1 [atomselect $molid "index $part1"]
   set spart2 [atomselect $molid "index $part2"]
-
-  # For debugging: set beta field
-  # [atomselect $molid all] set beta 0
-  # $spart1 set beta 1
-  # $spart2 set beta 2
 
   # Persistent atomselects for individual atoms, used by rotate_group
   set sela1 [atomselect $molid "index $a1"]
